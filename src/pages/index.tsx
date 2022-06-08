@@ -1,9 +1,18 @@
-import type { NextPage } from 'next';
+import type { GetStaticProps, NextPage } from 'next';
 import Head from 'next/head';
 import { SubscribeButton } from '../components/SubscribeButton';
+import { stripe } from '../service/stripe';
 import styles from '../styles/home.module.scss';
 
-const Home: NextPage = () => {
+interface HomeProps {
+  product: {
+    priceId: string;
+    amount: number;
+  }
+}
+
+const Home: NextPage<HomeProps> = ({product}) => {
+
   return (
    <>
     <Head>
@@ -15,9 +24,9 @@ const Home: NextPage = () => {
         <h1>News about the <span>React</span>world.</h1>
         <p>
           get access to all the publications <br/>
-          <span>fot $9.90 month</span>
+          <span>fot {product.amount} month</span>
         </p>
-        <SubscribeButton />
+        <SubscribeButton priceId={product.priceId} />
 
       </section>
     <img src='/images/avatar.svg' alt='Girl coding' />
@@ -27,3 +36,22 @@ const Home: NextPage = () => {
 }
 
 export default Home
+
+
+export const getStaticProps:GetStaticProps = async() => {
+
+  const price = await stripe.prices.retrieve('price_1L7qUGGMbJ2cHzZnIAXIEqEM')
+
+  const product = {
+    priceId: price.id,
+    amount:new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    } ).format(price.unit_amount as number / 100),
+  };
+  return {
+    props: {
+      product
+    },revalidate:60 * 60 * 24 // 24 hours
+  }
+}
